@@ -217,6 +217,139 @@ View Transition → neue Seite → neue Texture → entfalten
 | SEO Impact | Bot-Erkennung (bereits gelöst), HTML bleibt unter Canvas |
 | WP Block Editor Kompatibilität | Custom Attributes, keine Block-Modifikation |
 
+## User-Bedienung: BABYEINFACH
+
+### Designprinzip
+**Kein Coding. Kein Fachwissen. Einfach malen.**
+
+Der User soll 3D-Effekte auf seiner Seite erstellen wie er in Paint/Keynote eine Linie zieht — intuitiv, direkt, sofort sichtbar.
+
+### Der Editor: "3D Canvas" im WordPress Customizer
+
+Der WordPress Customizer (Design → Anpassen) zeigt die Live-Seite. Darüber legen wir einen **Mal-Modus**:
+
+```
+┌─────────────────────────────────────────┐
+│ [🎨 3D Malen]  [✋ Bewegen]  [🗑 Löschen] │
+│                                          │
+│  ┌────────────────────────────────────┐  │
+│  │                                    │  │
+│  │    Live WordPress Seite            │  │
+│  │                                    │  │
+│  │    User malt mit dem Finger/Maus   │  │
+│  │    eine Linie quer über die Seite  │  │
+│  │    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~    │  │
+│  │                                    │  │
+│  │    → Linie wird sofort zu einer    │  │
+│  │      leuchtenden 3D-Spline         │  │
+│  │                                    │  │
+│  └────────────────────────────────────┘  │
+│                                          │
+│ Dicke: ──●──  Farbe: [■]  Glow: ──●──  │
+│ Tiefe: ──●──  Animation: [Pulsieren ▾]  │
+│                                          │
+│           [Speichern]  [Verwerfen]       │
+└─────────────────────────────────────────┘
+```
+
+### Was der User kann (ohne irgendwas zu wissen):
+
+**Linien malen:**
+- Finger/Maus drücken → über die Seite ziehen → loslassen
+- Die Linie wird sofort zu einer leuchtenden 3D-Spline
+- Schieberegler für Dicke, Glow, Farbe, Tiefe
+- Fertig. Kein "definiere Kontrollpunkte", kein "wähle Kurventyp"
+
+**Effekte auf Blöcke:**
+- Auf einen Textblock klicken → Dropdown erscheint: "Schweben", "Falten", "Leuchten"
+- Ein Klick → Effekt aktiv → sofort in der Vorschau sichtbar
+- Intensitäts-Slider → mehr oder weniger
+- Fertig.
+
+**Navigation-Pfad malen:**
+- Im Mal-Modus eine Linie von Menüpunkt zu Menüpunkt zeichnen
+- Die Menüpunkte "docken" automatisch an die Linie an
+- Die Linie wird zur 3D-Spline-Navigation
+- Hover über die Linie → nächster Menüpunkt leuchtet auf
+
+**Partikel streuen:**
+- Auf eine Stelle klicken → Partikel-Quelle platziert
+- Schieberegler: Dichte, Größe, Geschwindigkeit
+- Wie "Glitzer draufstreuen" — ein Klick, ein Slider, fertig
+
+### Technische Umsetzung des "Mal-Modus"
+
+```
+User malt (Pointer Events)
+    ↓
+JavaScript sammelt Punkte [{x, y}, {x, y}, ...]
+    ↓
+Punkte werden geglättet (Chaikin-Algorithmus oder ähnlich)
+    ↓
+Punkte werden zu Three.js CatmullRomCurve3
+    ↓
+Live-Preview: Sofort als leuchtende Spline sichtbar
+    ↓
+"Speichern" → Punkte werden als JSON in wp_options gespeichert
+    ↓
+Frontend: Plugin lädt JSON → rendert Splines
+```
+
+### Daten-Speicherung
+
+```json
+{
+  "page_id": 42,
+  "elements": [
+    {
+      "type": "spline",
+      "points": [[10, 50], [200, 80], [400, 30], [600, 90]],
+      "style": {
+        "thickness": 0.03,
+        "color": "#D6D2CE",
+        "glow": 0.5,
+        "depth": 0.3,
+        "animation": "pulse"
+      }
+    },
+    {
+      "type": "particle_source",
+      "position": [300, 200],
+      "style": {
+        "count": 30,
+        "size": 0.02,
+        "speed": 0.1,
+        "color": "#958D86"
+      }
+    },
+    {
+      "type": "block_effect",
+      "block_selector": ".wp-block-heading:nth-child(2)",
+      "effect": "float",
+      "intensity": 0.5
+    }
+  ]
+}
+```
+
+### Vorbilder für "Babyeinfach"
+
+| Tool | Was es richtig macht |
+|---|---|
+| **Keynote Magic Move** | Zwei Folien, Keynote animiert dazwischen — kein Keyframe-Wissen nötig |
+| **Instagram Stories** | Sticker draufziehen, Größe mit Pinch, fertig |
+| **Canva** | Drag & Drop Design ohne Photoshop-Wissen |
+| **Procreate** | Einfach malen, Pinsel wählen, loslegen |
+| **Apple Freeform** | Freihand zeichnen, wird automatisch geglättet |
+
+### Was wir NICHT bauen
+
+- ❌ Keinen Node-basierten Editor (zu technisch)
+- ❌ Kein Blender-Import (zu komplex)
+- ❌ Keine Code-Eingabe (kein User schreibt JSON)
+- ❌ Keine "definiere Kontrollpunkte" UI (zu abstrakt)
+- ❌ Kein separates Tool (alles im WP-Dashboard)
+
 ## Coding-Team
 
 | Rolle | Wer |
