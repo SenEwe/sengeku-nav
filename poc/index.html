@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sengeku 3D Nav — Proof of Concept</title>
+    <meta name="view-transition" content="same-origin">
+    <style>
+        @view-transition { navigation: auto; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #1A1514;
+            color: #D6D2CE;
+            font-family: "Inter", -apple-system, sans-serif;
+            overflow: hidden;
+            height: 100dvh;
+            width: 100vw;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* HUD */
+        #hud {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: rgba(214, 210, 206, 0.4);
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        /* Hover label tooltip */
+        #tooltip {
+            position: fixed;
+            z-index: 20;
+            color: #D6D2CE;
+            font-family: "Inter", sans-serif;
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            text-transform: uppercase;
+            background: rgba(26, 21, 20, 0.6);
+            padding: 6px 14px;
+            border-radius: 4px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        #tooltip.visible {
+            opacity: 1;
+        }
+
+        /* View Transition animations */
+        ::view-transition-old(root) {
+            animation: fade-and-shrink 0.5s ease-in forwards;
+        }
+
+        ::view-transition-new(root) {
+            animation: grow-and-fade 0.5s ease-out forwards;
+        }
+
+        @keyframes fade-and-shrink {
+            to {
+                opacity: 0;
+                transform: scale(1.1);
+                filter: blur(10px);
+            }
+        }
+
+        @keyframes grow-and-fade {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+                filter: blur(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+                filter: blur(0);
+            }
+        }
+
+        /* Touch hint */
+        #touch-hint {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: rgba(214, 210, 206, 0.3);
+            font-size: 13px;
+            font-family: "Inter", sans-serif;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        #touch-hint.hidden {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="tooltip"></div>
+    <div id="hud"></div>
+    <div id="touch-hint">Bewege · Tippe · Entdecke</div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        // ═══════════════════════════════════════════════════════════════
+        // CONFIG — Menu items (will come from WordPress in production)
+        // ═══════════════════════════════════════════════════════════════
+
+        const MENU_ITEMS = [
+            { label: 'Startseite', url: '#startseite', depth: 0 },
+            { label: 'Alltag', url: '#alltag', depth: 0.8 },
+            { label: 'Bewegen', url: '#bewegen', depth: 0.4 },
+            { label: 'Forschung', url: '#forschung', depth: 1.2 },
+            { label: 'SenGeKu', url: '#sengeku', depth: 0.6 },
+        ];
+
+        // Theme colors (from WordPress CSS variables in production)
+        const COLORS = {
+            bg: 0x1A1514,
+            text: 0xD6D2CE,
+            textHover: 0xFFFFFF,
+            accent: 0x958D86,
+            glow: 0xE1DFDB,
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // SCENE SETUP
+        // ═══════════════════════════════════════════════════════════════
+
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+        const hud = document.getElementById('hud');
+        const touchHint = document.getElementById('touch-hint');
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(COLORS.bg, 0.06);
+
+        const camera = new THREE.PerspectiveCamera(
+            50,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            100
+        );
+        camera.position.set(0, 0, 8);
+
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: false,
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setClearColor(COLORS.bg);
+        container.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(COLORS.glow, 1.5, 20);
+        pointLight.position.set(2, 3, 5);
+        scene.add(pointLight);
+
+        const backLight = new THREE.PointLight(COLORS.accent, 0.8, 15);
+        backLight.position.set(-3, -2, -3);
+        scene.add(backLight);
+
+        // ═══════════════════════════════════════════════════════════════
+        // RAYCASTER — Click/Hover detection
+        // ═══════════════════════════════════════════════════════════════
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const targetRotation = new THREE.Vector2();
+        let hoveredMesh = null;
+        let labelMeshes = [];
+
+        // ═══════════════════════════════════════════════════════════════
+        // FLOATING PARTICLES — Ambient atmosphere
+        // ═══════════════════════════════════════════════════════════════
+
+        function createParticles() {
+            const count = 80;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+
+            for (let i = 0; i < count * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 16;
+                positions[i + 1] = (Math.random() - 0.5) * 10;
+                positions[i + 2] = (Math.random() - 0.5) * 10;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: COLORS.accent,
+                size: 0.03,
+                transparent: true,
+                opacity: 0.4,
+                sizeAttenuation: true,
+            });
+
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+            return particles;
+        }
+
+        const particles = createParticles();
+
+        // ═══════════════════════════════════════════════════════════════
+        // LOAD FONT + CREATE LABELS
+        // ═══════════════════════════════════════════════════════════════
+
+        const fontLoader = new FontLoader();
+
+        fontLoader.load(
+            'https://cdn.jsdelivr.net/npm/three@0.172.0/examples/fonts/helvetiker_regular.typeface.json',
+            function (font) {
+                createLabels(font);
+                animate();
+            }
+        );
+
+        function createLabels(font) {
+            const totalItems = MENU_ITEMS.length;
+            const spacing = 1.8;
+            const startY = ((totalItems - 1) * spacing) / 2;
+
+            MENU_ITEMS.forEach((item, index) => {
+                // Text geometry
+                const geometry = new TextGeometry(item.label, {
+                    font: font,
+                    size: 0.35,
+                    depth: 0.05,
+                    curveSegments: 8,
+                    bevelEnabled: true,
+                    bevelThickness: 0.008,
+                    bevelSize: 0.005,
+                    bevelSegments: 3,
+                });
+
+                geometry.computeBoundingBox();
+                geometry.center();
+
+                // Material
+                const material = new THREE.MeshStandardMaterial({
+                    color: COLORS.text,
+                    metalness: 0.1,
+                    roughness: 0.6,
+                    emissive: COLORS.text,
+                    emissiveIntensity: 0.05,
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+
+                // Position — vertical stack with depth variation
+                mesh.position.set(
+                    (Math.random() - 0.5) * 0.5,  // slight horizontal offset
+                    startY - index * spacing,       // vertical stack
+                    -item.depth                     // depth into screen
+                );
+
+                // Store menu data on mesh
+                mesh.userData = {
+                    label: item.label,
+                    url: item.url,
+                    originalPosition: mesh.position.clone(),
+                    originalColor: COLORS.text,
+                    floatOffset: Math.random() * Math.PI * 2,
+                    floatSpeed: 0.15 + Math.random() * 0.1,
+                    floatAmount: 0.015 + Math.random() * 0.01,
+                };
+
+                scene.add(mesh);
+
+                // Invisible hitbox — much larger than text for easy clicking
+                const bbox = geometry.boundingBox;
+                const hitWidth = (bbox.max.x - bbox.min.x) + 1.5;
+                const hitHeight = (bbox.max.y - bbox.min.y) + 0.8;
+                const hitGeo = new THREE.PlaneGeometry(hitWidth, hitHeight);
+                const hitMat = new THREE.MeshBasicMaterial({
+                    transparent: true,
+                    opacity: 0,
+                    side: THREE.DoubleSide,
+                });
+                const hitbox = new THREE.Mesh(hitGeo, hitMat);
+                hitbox.position.copy(mesh.position);
+                hitbox.position.z += 0.06;
+                hitbox.userData = mesh.userData;
+                hitbox.userData.labelMesh = mesh;
+                scene.add(hitbox);
+                labelMeshes.push(hitbox);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // INTERACTION — Mouse / Touch
+        // ═══════════════════════════════════════════════════════════════
+
+        function onPointerMove(event) {
+            const x = event.clientX || (event.touches && event.touches[0].clientX);
+            const y = event.clientY || (event.touches && event.touches[0].clientY);
+            if (x === undefined) return;
+
+            mouse.x = (x / window.innerWidth) * 2 - 1;
+            mouse.y = -(y / window.innerHeight) * 2 + 1;
+
+            // No camera movement on pointer — only hover/click matters
+
+            // Raycast for hover
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(labelMeshes);
+
+            if (intersects.length > 0) {
+                const mesh = intersects[0].object;
+
+                if (hoveredMesh !== mesh) {
+                    // Unhover previous
+                    if (hoveredMesh) unhoverLabel(hoveredMesh);
+
+                    // Hover new
+                    hoveredMesh = mesh;
+                    hoverLabel(mesh);
+                }
+
+                // Position tooltip
+                tooltip.style.left = x + 15 + 'px';
+                tooltip.style.top = y - 10 + 'px';
+                tooltip.textContent = mesh.userData.url.replace('#', '/');
+                tooltip.classList.add('visible');
+
+                document.body.style.cursor = 'pointer';
+            } else {
+                if (hoveredMesh) {
+                    unhoverLabel(hoveredMesh);
+                    hoveredMesh = null;
+                }
+                tooltip.classList.remove('visible');
+                document.body.style.cursor = 'default';
+            }
+
+            // Hide touch hint on first interaction
+            touchHint.classList.add('hidden');
+        }
+
+        function getVisualMesh(hitbox) {
+            return hitbox.userData.labelMesh || hitbox;
+        }
+
+        function hoverLabel(hitbox) {
+            const mesh = getVisualMesh(hitbox);
+            mesh.material.emissiveIntensity = 0.4;
+            mesh.material.color.set(COLORS.textHover);
+            mesh.scale.setScalar(1.15);
+            mesh.position.z = mesh.userData.originalPosition.z + 0.5;
+        }
+
+        function unhoverLabel(hitbox) {
+            const mesh = getVisualMesh(hitbox);
+            mesh.material.emissiveIntensity = 0.05;
+            mesh.material.color.set(mesh.userData.originalColor);
+            mesh.scale.setScalar(1.0);
+            mesh.position.z = mesh.userData.originalPosition.z;
+        }
+
+        function onPointerClick(event) {
+            const x = event.clientX || (event.changedTouches && event.changedTouches[0].clientX);
+            const y = event.clientY || (event.changedTouches && event.changedTouches[0].clientY);
+            if (x === undefined) return;
+
+            const clickMouse = new THREE.Vector2(
+                (x / window.innerWidth) * 2 - 1,
+                -(y / window.innerHeight) * 2 + 1
+            );
+
+            raycaster.setFromCamera(clickMouse, camera);
+            const intersects = raycaster.intersectObjects(labelMeshes);
+
+            if (intersects.length > 0) {
+                const hitbox = intersects[0].object;
+                const mesh = getVisualMesh(hitbox);
+                navigateToLabel(mesh);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // NAVIGATION — Click label → zoom → transition → page
+        // ═══════════════════════════════════════════════════════════════
+
+        function navigateToLabel(mesh) {
+            const label = mesh.userData.label;
+            const url = mesh.userData.url;
+
+            // 1. Glow up the clicked label
+            mesh.material.emissiveIntensity = 1.0;
+            mesh.material.color.set(COLORS.glow);
+
+            // 2. Camera flies toward the label
+            const targetPos = mesh.position.clone();
+            targetPos.z += 2;
+
+            const startPos = camera.position.clone();
+            const startTime = performance.now();
+            const duration = 800;
+
+            function flyAnimation(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+
+                camera.position.lerpVectors(startPos, targetPos, ease);
+                camera.lookAt(mesh.position);
+
+                // Fade out other labels
+                labelMeshes.forEach(m => {
+                    if (m !== mesh) {
+                        m.material.opacity = 1 - ease;
+                        m.material.transparent = true;
+                    }
+                });
+
+                // Scale up clicked label
+                const scale = 1.15 + ease * 2;
+                mesh.scale.setScalar(scale);
+
+                renderer.render(scene, camera);
+
+                if (t < 1) {
+                    requestAnimationFrame(flyAnimation);
+                } else {
+                    // 3. Navigate with View Transition
+                    triggerNavigation(url, label);
+                }
+            }
+
+            requestAnimationFrame(flyAnimation);
+        }
+
+        function triggerNavigation(url, label) {
+            if (document.startViewTransition) {
+                document.startViewTransition(() => {
+                    // In production: window.location.href = url;
+                    showLandingPage(label, url);
+                });
+            } else {
+                // Fallback without View Transitions
+                showLandingPage(label, url);
+            }
+        }
+
+        // Demo: show a simple landing page (in WP this would be actual navigation)
+        function showLandingPage(label, url) {
+            document.body.innerHTML = `
+                <div style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100dvh;
+                    background: #1A1514;
+                    color: #D6D2CE;
+                    font-family: Inter, sans-serif;
+                    padding: 40px;
+                    text-align: center;
+                ">
+                    <h1 style="font-size: clamp(2rem, 5vw, 4rem); font-weight: 300; margin-bottom: 20px;">
+                        ${label}
+                    </h1>
+                    <p style="color: #958D86; font-size: 1.1rem; max-width: 500px; line-height: 1.6;">
+                        In WordPress würde hier die echte Seite laden.<br>
+                        URL: ${url}
+                    </p>
+                    <button onclick="location.reload()" style="
+                        margin-top: 40px;
+                        padding: 12px 30px;
+                        background: transparent;
+                        border: 1px solid #65574E;
+                        color: #D6D2CE;
+                        font-family: Inter, sans-serif;
+                        font-size: 1rem;
+                        border-radius: 30px;
+                        cursor: pointer;
+                    ">← Zurück zur Navigation</button>
+                </div>
+            `;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // EVENT LISTENERS
+        // ═══════════════════════════════════════════════════════════════
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('click', onPointerClick);
+        window.addEventListener('touchend', onPointerClick);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // ANIMATION LOOP
+        // ═══════════════════════════════════════════════════════════════
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsed = clock.getElapsedTime();
+
+            // Labels — no floating, completely still
+            // (movement only on hover/click)
+
+            // Camera stays fixed — no movement
+
+            // Particles drift
+            particles.rotation.y = elapsed * 0.02;
+            particles.rotation.x = Math.sin(elapsed * 0.01) * 0.1;
+
+            // Point light follows camera slightly
+            pointLight.position.x = 2 + Math.sin(elapsed * 0.3) * 1;
+            pointLight.position.y = 3 + Math.cos(elapsed * 0.2) * 0.5;
+
+            // HUD
+            hud.textContent = `${Math.round(1 / clock.getDelta())} FPS`;
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
