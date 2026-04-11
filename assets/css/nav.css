@@ -1,0 +1,424 @@
+/**
+ * Sengeku Nav — Apple-Style Navigation
+ * Desktop: Hover opens submenus (accordion slide-down)
+ * Mobile: Tap opens submenus (accordion slide-down) + Fullscreen blur overlay
+ * Works WITH native WP navigation, never against it.
+ *
+ * Uses theme CSS variables — adapts to any Block Theme + future dark mode.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   0. NAV COLOR TOKENS — Derived from active theme
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Overlay (mobile): theme's darkest color */
+    --sengeku-nav-overlay-bg: var(--wp--preset--color--contrast, #1A1514);
+    --sengeku-nav-overlay-opacity: 0.94;
+
+    /* Text in mobile overlay */
+    --sengeku-nav-text: var(--wp--preset--color--base, #D6D2CE);
+    --sengeku-nav-text-hover: var(--wp--preset--color--base-2, #E1DFDB);
+    --sengeku-nav-text-muted: var(--wp--preset--color--contrast-3, #958D86);
+
+    /* Desktop submenu panel */
+    --sengeku-nav-panel-bg: var(--wp--preset--color--base-2, #E1DFDB);
+    --sengeku-nav-panel-text: var(--wp--preset--color--contrast, #1A1514);
+    --sengeku-nav-panel-text-hover: var(--wp--preset--color--contrast-2, #65574E);
+
+    /* Borders & accents */
+    --sengeku-nav-border: var(--wp--preset--color--contrast-2, #65574E);
+
+    /* Font */
+    --sengeku-nav-font: var(--wp--preset--font-family--heading, "Inter", sans-serif);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK MODE PREPARATION — Uncomment or control via separate plugin
+   ═══════════════════════════════════════════════════════════════════
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --sengeku-nav-overlay-bg: var(--wp--preset--color--base, #D6D2CE);
+        --sengeku-nav-text: var(--wp--preset--color--contrast, #1A1514);
+        --sengeku-nav-text-hover: var(--wp--preset--color--contrast, #1A1514);
+        --sengeku-nav-text-muted: var(--wp--preset--color--contrast-2, #65574E);
+        --sengeku-nav-panel-bg: var(--wp--preset--color--contrast, #1A1514);
+        --sengeku-nav-panel-text: var(--wp--preset--color--base, #D6D2CE);
+        --sengeku-nav-panel-text-hover: var(--wp--preset--color--base-2, #E1DFDB);
+        --sengeku-nav-border: var(--wp--preset--color--contrast-3, #958D86);
+    }
+}
+
+*/
+
+/* ═══════════════════════════════════════════════════════════════════
+   1. DESKTOP — Hover Accordion Submenus
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 783px) {
+
+    /* Parent items with submenus — position context */
+    .wp-block-navigation-item.has-child,
+    .wp-block-navigation-submenu {
+        position: relative;
+    }
+
+    /* Submenu panel — hidden by default, slides down on hover */
+    /* Force submenus to be CSS-controlled on desktop, override WP's open-on-click JS */
+    .wp-block-navigation .wp-block-navigation__submenu-container {
+        /* Override WP's JS-driven display */
+        display: block !important;
+        position: absolute !important;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 200px;
+        background: var(--sengeku-nav-panel-bg) !important;
+        border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+        padding: 8px 0 !important;
+        margin-top: 8px !important;
+
+        /* Hidden by default — hover reveals */
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.25s ease, visibility 0s 0.25s;
+    }
+
+    /* Show on hover — pure CSS, no click needed */
+    .wp-block-navigation-item.has-child:hover > .wp-block-navigation__submenu-container,
+    .wp-block-navigation-submenu:hover > .wp-block-navigation__submenu-container,
+    /* Also show when WP toggle is expanded (keyboard/accessibility) */
+    .wp-block-navigation-submenu__toggle[aria-expanded="true"] + .wp-block-navigation__submenu-container {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transition: opacity 0.25s ease, visibility 0s 0s;
+    }
+
+    /* Keep submenu hoverable — bridge gap between parent and dropdown */
+    .wp-block-navigation-item.has-child,
+    .wp-block-navigation-submenu {
+        position: relative;
+    }
+
+    .wp-block-navigation-item.has-child::after,
+    .wp-block-navigation-submenu::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        height: 12px; /* bridge the gap so hover doesn't break */
+    }
+
+    /* Submenu items */
+    .wp-block-navigation .wp-block-navigation__submenu-container .wp-block-navigation-item__content {
+        display: block !important;
+        padding: 10px 20px !important;
+        font-size: 0.95rem !important;
+        color: var(--sengeku-nav-panel-text) !important;
+        text-decoration: none !important;
+        white-space: nowrap;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .wp-block-navigation .wp-block-navigation__submenu-container .wp-block-navigation-item__content:hover {
+        background: color-mix(in srgb, var(--sengeku-nav-border) 15%, transparent);
+        color: var(--sengeku-nav-panel-text-hover) !important;
+    }
+
+    /* Hide WP's default submenu toggle icon on desktop — hover handles it */
+    .wp-block-navigation .wp-block-navigation-submenu__toggle svg {
+        transition: transform 0.3s ease;
+    }
+
+    .wp-block-navigation-item.has-child:hover .wp-block-navigation-submenu__toggle svg,
+    .wp-block-navigation-submenu:hover > .wp-block-navigation-submenu__toggle svg {
+        transform: rotate(180deg);
+    }
+
+} /* end desktop */
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. MOBILE — Fullscreen Overlay + Tap Accordion
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 782px) {
+
+    /* Overlay container */
+    .wp-block-navigation__responsive-container.is-menu-open {
+        background: color-mix(in srgb, var(--sengeku-nav-overlay-bg) calc(var(--sengeku-nav-overlay-opacity) * 100%), transparent) !important;
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+    }
+
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+        .wp-block-navigation__responsive-container.is-menu-open {
+            background: rgba(26, 21, 20, 0.94) !important;
+        }
+    }
+
+    /* Dialog — clean */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__responsive-dialog {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Content — centered */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__responsive-container-content {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        min-height: 100vh;
+        padding: 80px 24px 40px !important;
+    }
+
+    /* Nav list — override theme background & text colors inside overlay */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__responsive-container-content > .wp-block-navigation__container {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0 !important;
+        width: 100%;
+        max-width: 400px;
+        /* CRITICAL: Remove theme's background from nav container in overlay */
+        background: transparent !important;
+        background-color: transparent !important;
+        color: var(--sengeku-nav-text) !important;
+    }
+
+    /* Also reset any nested containers with theme backgrounds */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__container.has-background {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__container.has-text-color {
+        color: var(--sengeku-nav-text) !important;
+    }
+
+    /* ── Menu items ── */
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item {
+        width: 100%;
+        border-bottom: 1px solid color-mix(in srgb, var(--sengeku-nav-border) 25%, transparent);
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item:last-child {
+        border-bottom: none;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item__content,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-submenu__toggle {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100%;
+        min-height: 56px;
+        padding: 16px 0 !important;
+        font-family: var(--sengeku-nav-font) !important;
+        font-size: 1.35rem !important;
+        font-weight: 400 !important;
+        letter-spacing: 0.01em;
+        color: var(--sengeku-nav-text) !important;
+        text-decoration: none !important;
+        background: transparent !important;
+        border: none !important;
+        transition: color 0.2s ease, opacity 0.2s ease;
+    }
+
+    /* Hide the separate chevron icon next to submenu toggle */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__submenu-icon {
+        display: none !important;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item__content:hover,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item__content:focus,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-submenu__toggle:hover,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-submenu__toggle:focus {
+        color: var(--sengeku-nav-text-hover) !important;
+        opacity: 0.7;
+    }
+
+    /* Current page — subtle highlight, NO border/outline */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item.current-menu-item .wp-block-navigation-item__content,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item.current-menu-item .wp-block-home-link__content {
+        color: var(--sengeku-nav-text-hover) !important;
+        font-weight: 500 !important;
+        /* Remove any theme borders/outlines on current item */
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    /* Kill ALL borders/outlines on any nav item inside overlay */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item a,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item button,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-home-link a {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    /* Remove theme's current-menu-item box/border styling */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item.current-menu-item {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    /* ── Submenu Accordion (Tap to slide open) ── */
+
+    /* FORCE hide submenus — WP overrides max-height, so use display:none */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__submenu-container {
+        display: none !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        position: static !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Expanded state — show with animation */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-item.has-child.sengeku-submenu-open > .wp-block-navigation__submenu-container,
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-submenu.sengeku-submenu-open > .wp-block-navigation__submenu-container {
+        display: block !important;
+    }
+
+    /* Submenu items — smaller, muted */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__submenu-container .wp-block-navigation-item__content {
+        font-size: 1.1rem !important;
+        min-height: 48px;
+        padding: 12px 0 !important;
+        color: var(--sengeku-nav-text-muted) !important;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__submenu-container .wp-block-navigation-item__content:hover {
+        color: var(--sengeku-nav-text-hover) !important;
+    }
+
+    /* Submenu toggle button — chevron rotation */
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-submenu__toggle {
+        color: var(--sengeku-nav-text-muted) !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-submenu__toggle svg {
+        transition: transform 0.3s ease;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation-submenu__toggle[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+    }
+
+    /* ── Close button ── */
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__responsive-container-close {
+        position: absolute !important;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        background: transparent !important;
+        border: none !important;
+        color: var(--sengeku-nav-text) !important;
+        width: 44px;
+        height: 44px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s ease;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__responsive-container-close:hover {
+        background: color-mix(in srgb, var(--sengeku-nav-border) 30%, transparent) !important;
+    }
+
+    .wp-block-navigation__responsive-container.is-menu-open
+    .wp-block-navigation__responsive-container-close svg {
+        fill: var(--sengeku-nav-text) !important;
+        width: 20px;
+        height: 20px;
+    }
+
+    /* ── Burger icon ── */
+
+    .wp-block-navigation__responsive-container-open {
+        transition: opacity 0.2s ease;
+    }
+
+    .wp-block-navigation__responsive-container-open svg {
+        transition: transform 0.3s ease;
+    }
+
+    .wp-block-navigation__responsive-container-open:hover svg {
+        transform: scale(1.1);
+    }
+
+    /* ── GSAP animation prep ── */
+
+    .wp-block-navigation__responsive-container.is-menu-open.sengeku-nav-animating
+    .wp-block-navigation__responsive-container-content > .wp-block-navigation__container > .wp-block-navigation-item {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+} /* end mobile */
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+    .wp-block-navigation__responsive-container,
+    .wp-block-navigation__responsive-container *,
+    .wp-block-navigation .wp-block-navigation__submenu-container {
+        transition: none !important;
+        animation: none !important;
+    }
+}
