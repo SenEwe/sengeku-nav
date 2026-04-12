@@ -4,7 +4,7 @@ Tags: navigation, mega menu, block theme, hover menu, mobile menu
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 3.0.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 
 Apple-style mega menu for WordPress Block Themes. Fullwidth hover panels, smooth transitions, mobile accordion.
@@ -31,7 +31,7 @@ Sengeku Nav enhances the native WordPress Navigation block with Apple-style inte
 
 == Changelog ==
 
-= 3.0.0 =
+= 1.0.0 =
 * Complete rewrite using CSS best practices (position:static trick)
 * Desktop hover via pure CSS (no JS fighting with Interactivity API)
 * Minimal JS for mobile accordion only
