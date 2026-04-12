@@ -121,6 +121,21 @@
 
 @media (max-width: 782px) {
 
+    /* Bigger burger button — easier to tap */
+    .wp-block-navigation__responsive-container-open {
+        padding: 8px !important;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .wp-block-navigation__responsive-container-open svg {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
     .wp-block-navigation__responsive-container.is-menu-open {
         background: color-mix(in srgb, var(--sengeku-nav-overlay-bg) 94%, transparent) !important;
         backdrop-filter: blur(20px) saturate(180%);

@@ -3,7 +3,7 @@
  * Plugin Name: Sengeku Nav
  * Plugin URI: https://github.com/SenEwe/sengeku-nav
  * Description: Apple-style Mega Menu for WordPress Block Themes. Fullwidth hover panels, smooth transitions, mobile accordion. Works WITH the native Navigation block.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Sen-ge-ku
  * Author URI: https://sen-ge-ku.de
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 define('SENGEKU_NAV_URL', plugin_dir_url(__FILE__));
-define('SENGEKU_NAV_VER', '1.0.2');
+define('SENGEKU_NAV_VER', '1.0.3');
 
 class Sengeku_Nav {
 
