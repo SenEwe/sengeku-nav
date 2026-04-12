@@ -4,7 +4,7 @@ Tags: navigation, mega menu, block theme, hover menu, mobile menu
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 
 Apple-style mega menu for WordPress Block Themes. Fullwidth hover panels, smooth transitions, mobile accordion.
