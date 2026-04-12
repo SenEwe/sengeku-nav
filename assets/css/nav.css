@@ -70,13 +70,16 @@
         transition: opacity 0.25s ease, visibility 0s 0s;
     }
 
-    /* Submenu links */
+    /* Submenu links — inherit theme fonts */
     .wp-block-navigation .wp-block-navigation__submenu-container .wp-block-navigation-item__content {
         color: var(--sengeku-nav-panel-text) !important;
         text-decoration: none !important;
         padding: 10px 16px !important;
         border-radius: 6px;
-        font-size: 0.95rem;
+        font-family: var(--wp--preset--font-family--heading, var(--wp--preset--font-family--body, inherit)) !important;
+        font-size: var(--wp--preset--font-size--small, 0.95rem) !important;
+        font-weight: 400;
+        letter-spacing: inherit;
         transition: background 0.15s ease;
         display: block !important;
         white-space: nowrap;
@@ -181,8 +184,10 @@
         width: 100%;
         min-height: 56px;
         padding: 16px 0 !important;
-        font-size: 1.35rem !important;
+        font-family: var(--wp--preset--font-family--heading, var(--wp--preset--font-family--body, inherit)) !important;
+        font-size: var(--wp--preset--font-size--large, 1.35rem) !important;
         font-weight: 400 !important;
+        letter-spacing: inherit;
         color: var(--sengeku-nav-text) !important;
         text-decoration: none !important;
         background: transparent !important;
