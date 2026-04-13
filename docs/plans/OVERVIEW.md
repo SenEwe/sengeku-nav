@@ -82,6 +82,31 @@ Danach:    Pro → Three.js, Mal-Editor, 3D-Effekte
 | Pro | ~79€ einmalig oder 49€/Jahr | Eigene Website, Gumroad |
 | Bundle (Plus + Pro) | ~89€ einmalig | Eigene Website |
 
+## Upgrade-Hinweise: Dezent, nicht aufdringlich
+
+### Prinzip
+Die Free-Version ist **vollständig** — sie löst das WP-Menü-Problem komplett.
+Plus/Pro fügen Features **hinzu**, sie schalten nichts frei.
+Kein Feature in Basic ist beschnitten oder gesperrt.
+
+### Wo Upgrade-Hinweise erscheinen
+- **Settings-Seite** (nur Basic): Kleine Box unten
+  "Bilder und Spalten im Dropdown? → Sengeku Nav Plus"
+- **Plugin-Liste**: Dezenter Link neben Version
+  "Sengeku Nav 1.0.3 | Plus verfügbar"
+- **Nach Aktivierung** (einmalig): Admin Notice
+  "Sengeku Nav aktiv! Tipp: Mit Plus kannst du die Dropdowns frei gestalten. → Mehr erfahren"
+
+### Wo KEINE Hinweise erscheinen
+- ❌ Nicht im Frontend (User sehen nichts)
+- ❌ Nicht im Editor (stört beim Arbeiten)
+- ❌ Nicht als Popup/Modal (nervig)
+- ❌ Nicht als wiederkehrende Notices (wie Spam)
+- ❌ Keine "🔒 Gesperrt" Labels (manipulativ)
+
+### Vorbild
+Wie `sengeku-meta-description-manager` — v1.2 auf WP.org ist vollständig, macht was es soll, keine Werbung. Das Upgrade auf v2.0 kommt automatisch als Update.
+
 ## Nächste konkrete Schritte
 
 ### Diese Woche:
